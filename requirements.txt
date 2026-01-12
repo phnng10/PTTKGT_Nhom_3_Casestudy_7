@@ -1,0 +1,5 @@
+# Text processing for Vietnamese
+underthesea>=6.7.0
+
+# File encoding detection
+chardet>=5.1.0
