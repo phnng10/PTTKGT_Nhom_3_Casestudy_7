@@ -47,18 +47,18 @@ def validate_input(text, words, segments=None, min_words=10):
     if not words or len(words) < min_words:
         errors.append("Danh sách từ quá ngắn")
      
-     #sau
-     if segments is not None:
+    #sau
+    if segments is not None:
         if not segments:
-            error.append("không có đoạn nào sau khi chia.")
+            errors.append("không có đoạn nào sau khi chia.")
         #đoạn rỗng
-        empty_segments = [i for i, seg in enumarate(segments) if not seg]
+        empty_segments = [i for i, seg in enumerate(segments) if not seg]
         if empty_segments:
-            error.append("f"Có đoạn rỗng tại: {empty_segments}")
+            errors.append(f"Có đoạn rỗng tại: {empty_segments}")
         #đoạn quá ngắn
-        short_segments = [i for i, seg in enumarate(segments) if len(seg) < min_words]
+        short_segments = [i for i, seg in enumerate(segments) if len(seg) < min_words]
         if short_segments:
-            error.append(f"Có {len(short_segments)} đoạn quá ngắn (< {min_words} từ đoạn): {short_segments}")
+            errors.append(f"Có {len(short_segments)} đoạn quá ngắn (< {min_words} từ đoạn): {short_segments}")
         #kiểm tra câu dính và câu dài bất thường
         lengths = [len(seg) for seg in segments if seg]
         if lengths:
@@ -66,7 +66,7 @@ def validate_input(text, words, segments=None, min_words=10):
             min_len_seg = min(lengths)
             
             if min_len_seg > 0 and max_len > 3 * min_len_seg:
-                error.append("Độ dài các đoạn chênh lệch lớn(tối đa>3 lần tối thiểu) – có thể dính câu")
+                errors.append("Độ dài các đoạn chênh lệch lớn(tối đa>3 lần tối thiểu) – có thể dính câu")
     return errors
    
 if __name__ == "__main__":
