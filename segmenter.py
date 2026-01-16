@@ -100,20 +100,20 @@ if __name__ == "__main__":
             for e in errors2:
                 print(" -", e)
         exit()
-    print("Text 1: ")
-    print("Chia theo câu:")
+    print("=====Text 1=====")
+    print("====Chia theo câu====")
     seg_sent = segment_by_sentence(text1, 3)
     print("Số đoạn:", len(seg_sent))
 
-    print("\nChia theo độ dài:")
+    print("\n====Chia theo độ dài====")
     seg_len = segment_by_length(words1, 50)
     print("Số đoạn:", len(seg_len))
     
-    print("Text 2: ")
-    print("Chia theo câu:")
+    print("=====Text 2=====")
+    print("====Chia theo câu====")
     seg_sent = segment_by_sentence(text2, 3)
     print("Số đoạn:", len(seg_sent))
 
-    print("\nChia theo độ dài:")
+    print("\n====Chia theo độ dài====")
     seg_len = segment_by_length(words2, 50)
     print("Số đoạn:", len(seg_len))
