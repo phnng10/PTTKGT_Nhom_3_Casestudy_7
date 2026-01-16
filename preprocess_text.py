@@ -2,6 +2,7 @@ import re
 import os
 from underthesea import word_tokenize
 import chardet
+import logging
 
 # Danh sách từ dừng tiếng Việt
 STOPWORDS_VI = {'và', 'của', 'có', 'được', 'trong', 'là', 'với', 'để', 'cho', 'từ',
@@ -45,9 +46,15 @@ def read_file(file_path):
 def clean_text(text):
     # Chuyển về chữ thường
     text = text.lower()
-    # Bỏ ký tự đặc biệt
-    text = re.sub(r'[^\w\s]', ' ', text)
+    # Bỏ ký tự đặc biệt (nhưng giữ lại dấu câu . ! ?)
+    text = re.sub(r'[^\w\s.!?]', ' ', text)
     # Xóa khoảng trắng thừa
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+def clean_text_for_segmenter(text):
+    # Giữ nguyên text gốc với dấu câu cho segmenter
+    # Chỉ xóa khoảng trắng thừa
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
@@ -58,6 +65,45 @@ def tokenize(text):
         return words
     except:
         return text.split()
+
+def tokenize_with_punctuation(text):
+    # Tách từ nhưng giữ lại dấu câu . ! ? cho segmenter
+    try:
+        # Tách từ bằng underthesea
+        words = word_tokenize(text, format="text").split()
+        # Giữ lại các dấu câu như các token riêng biệt
+        result = []
+        for word in words:
+            # Nếu từ kết thúc bằng dấu câu, tách ra
+            if word and word[-1] in '.!?':
+                result.append(word[:-1])  # Từ không có dấu câu
+                result.append(word[-1])   # Dấu câu riêng
+            else:
+                result.append(word)
+        return result
+    except:
+        # Fallback: tách đơn giản nhưng giữ dấu câu
+        words = []
+        current_word = ""
+        for char in text:
+            if char.isalnum() or char in 'àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ':
+                current_word += char
+            elif char in '.!?':
+                if current_word:
+                    words.append(current_word)
+                    current_word = ""
+                words.append(char)
+            elif char.isspace():
+                if current_word:
+                    words.append(current_word)
+                    current_word = ""
+            else:
+                if current_word:
+                    words.append(current_word)
+                    current_word = ""
+        if current_word:
+            words.append(current_word)
+        return [w for w in words if w.strip()]
 
 def remove_stopwords(words):
     # Loại bỏ stopwords
@@ -78,21 +124,101 @@ def normalize_english(words):
         result.append(word)
     return result
 
-def preprocess(file_path):
-    # Hàm chính: tiền xử lý văn bản
-    text = read_file(file_path)
-    text = clean_text(text)
-    words = tokenize(text)
-    original_words = words.copy()
-    words = remove_stopwords(words)
-    words = normalize_english(words)
+def reconstruct_sentence(words):
+    # Hàm ghép lại câu sau khi xử lý
+    if not words:
+        return ""
     
-    return {
-        'original': original_words,
-        'cleaned': words,
-        'original_count': len(original_words),
-        'cleaned_count': len(words)
-    }
+    # Ghép các từ lại thành câu, thêm khoảng trắng giữa các từ
+    sentence = " ".join(words)
+    return sentence
+
+_logger = None
+
+def setup_logging(log_file="preprocess_log.txt"):
+    # Thiết lập logging quá trình xử lý (chỉ setup một lần)
+    global _logger
+    if _logger is None:
+        # Xóa các handler cũ nếu có
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+        
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file, encoding='utf-8'),
+                logging.StreamHandler()
+            ],
+            force=True
+        )
+        _logger = logging.getLogger(__name__)
+    return _logger
+
+def preprocess(file_path, enable_logging=True):
+    # Hàm chính: tiền xử lý văn bản
+    logger = setup_logging() if enable_logging else None
+    
+    if logger:
+        logger.info(f"Bắt đầu xử lý file: {file_path}")
+    
+    try:
+        # Đọc file
+        original_text = read_file(file_path)
+        if logger:
+            logger.info(f"Đã đọc file thành công. Độ dài: {len(original_text)} ký tự")
+        
+        # Text gốc với dấu câu cho segmenter
+        text_with_punctuation = clean_text_for_segmenter(original_text)
+        if logger:
+            logger.info("Đã chuẩn hóa text với dấu câu cho segmenter")
+        
+        # Text đã làm sạch (bỏ dấu câu) cho các mục đích khác
+        cleaned_text = clean_text(original_text)
+        if logger:
+            logger.info("Đã làm sạch text: lowercase, bỏ ký tự đặc biệt")
+        
+        # Danh sách từ có dấu câu cho segmenter
+        words_with_punctuation = tokenize_with_punctuation(text_with_punctuation)
+        if logger:
+            logger.info(f"Đã tách từ với dấu câu: {len(words_with_punctuation)} từ")
+        
+        # Danh sách từ đã làm sạch
+        words = tokenize(cleaned_text)
+        original_words = words.copy()
+        if logger:
+            logger.info(f"Đã tách từ: {len(original_words)} từ gốc")
+        
+        words = remove_stopwords(words)
+        if logger:
+            logger.info(f"Đã loại bỏ stopwords: còn {len(words)} từ")
+        
+        words = normalize_english(words)
+        if logger:
+            logger.info(f"Đã chuẩn hóa từ tiếng Anh: còn {len(words)} từ")
+        
+        # Ghép lại câu sau khi xử lý
+        reconstructed_sentence = reconstruct_sentence(words)
+        if logger:
+            logger.info("Đã ghép lại câu sau khi xử lý")
+            logger.info(f"Thống kê: {len(original_words)} từ gốc -> {len(words)} từ đã clean")
+            logger.info(f"Hoàn thành xử lý file: {file_path}")
+        
+        return {
+            'original_text': original_text,  # Text gốc hoàn toàn
+            'clean_text': text_with_punctuation,  # Text với dấu câu cho segmenter
+            'original': original_words,  # Từ gốc (đã làm sạch một phần)
+            'cleaned': words,  # Từ đã làm sạch hoàn toàn
+            'words_with_punctuation': words_with_punctuation,  # Danh sách từ có dấu câu cho segmenter
+            'reconstructed_sentence': reconstructed_sentence,  # Câu đã ghép lại sau khi xử lý
+            'original_count': len(original_words),
+            'cleaned_count': len(words),
+            'words_with_punctuation_count': len(words_with_punctuation)
+        }
+    except Exception as e:
+        if logger:
+            logger.error(f"Lỗi khi xử lý file {file_path}: {str(e)}")
+        raise
 
 import json
 
