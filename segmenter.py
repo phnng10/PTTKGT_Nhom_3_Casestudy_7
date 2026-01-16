@@ -72,21 +72,48 @@ def validate_input(text, words, segments=None, min_words=10):
 if __name__ == "__main__":
     from preprocess_text import preprocess
 
-    data = preprocess("text1.txt")
-    text = read_file("text1.txt")
-    words = data["cleaned"]
+    data1 = preprocess("text1.txt")
+    data2 = preprocess("text2.txt")
 
-    errors = validate_input(text, words)
-    if errors:
+    text1 = data1["clean_text"]
+    text2 = data2["clean_text"]
+
+    words1 = data1["cleaned"]
+    words2 = data2["cleaned"]
+
+    words1_punct = data1["words_with_punctuation"]
+    words2_punct = data2["words_with_punctuation"]
+
+    errors1 = validate_input(text1, words1)
+    errors2 = validate_input(text2, words2)
+
+    if errors1 or errors2:
         print("Lỗi input:")
-        for e in errors:
-            print("-", e)
-        exit()
 
+        if errors1:
+            print("Text1:")
+            for e in errors1:
+                print(" -", e)
+
+        if errors2:
+            print("Text2:")
+            for e in errors2:
+                print(" -", e)
+        exit()
+    print("Text 1: ")
     print("Chia theo câu:")
-    seg_sent = segment_by_sentence(text, 3)
+    seg_sent = segment_by_sentence(text1, 3)
     print("Số đoạn:", len(seg_sent))
 
     print("\nChia theo độ dài:")
-    seg_len = segment_by_length(words, 50)
+    seg_len = segment_by_length(words1, 50)
+    print("Số đoạn:", len(seg_len))
+    
+    print("Text 2: ")
+    print("Chia theo câu:")
+    seg_sent = segment_by_sentence(text2, 3)
+    print("Số đoạn:", len(seg_sent))
+
+    print("\nChia theo độ dài:")
+    seg_len = segment_by_length(words2, 50)
     print("Số đoạn:", len(seg_len))
