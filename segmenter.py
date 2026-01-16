@@ -73,7 +73,7 @@ if __name__ == "__main__":
     from preprocess_text import preprocess
 
     data = preprocess("text1.txt")
-    text = data["clean_text"]
+    text = " ".join(data["original"])
     words = data["cleaned"]
 
     errors = validate_input(text, words)
