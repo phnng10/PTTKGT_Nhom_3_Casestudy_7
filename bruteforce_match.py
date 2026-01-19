@@ -1,5 +1,11 @@
 from segmenter import segment_by_sentence
 from preprocess_text import preprocess
+from difflib import SequenceMatcher
+
+    #Tính độ giống nhau giữa 2 câu
+def sentence_similarity(s1, s2):
+    return SequenceMatcher(None, s1, s2).ratio()
+
 
     #So khớp toàn bộ đoạn 
 
@@ -60,7 +66,7 @@ if __name__ == "__main__":
     total_segments = len(segments1) + len(segments2)
 
     #tính độ tương đồng cho cả text 1 và text 2
-    similarity = calculate_similarity(total_segments, len(matches))*100
+    similarity = calculate_similarity(total_segments, len(matches))
 
     print("Số đoạn văn bản 1:", len(segments1))
     print("Số đoạn văn bản 2:",len(segments2))
@@ -68,8 +74,8 @@ if __name__ == "__main__":
     print("Phần trăm giống nhau:", similarity, "%")
 
     print("\nCác đoạn trùng nhau:")
-    for i, j in matches:
-        print(f"Đoạn {i} (Text1) trùng với đoạn {j} (Text2)")
+    for i, j,sim in matches:
+        print(f"Đoạn {i} (Text1) trùng với đoạn {j} (Text2), similarity={sim}")
 
     # so khớp nhóm từ
     word_matches = brute_force_word_group(words1, words2, 5)
@@ -81,3 +87,4 @@ if __name__ == "__main__":
         print(f"-Nhóm từ tại vị trí {i} (Text 1) trùng với vị trí {j} (Text 2)")
 
         print(" Nội dung nhóm từ:","".join(group))
+    
