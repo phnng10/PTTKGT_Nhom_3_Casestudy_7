@@ -1,139 +1,192 @@
-# report_builder.py
-# Nhiệm vụ: Tạo file report.html từ dữ liệu kết quả
-# - Có tiêu đề, mô tả
-# - Bảng so sánh 3 chiến lược
-# - 1–2 biểu đồ bằng matplotlib
-# - CSS nhẹ nhàng cho dễ nhìn
-
-import json
 import os
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-# =========================
-# VẼ BIỂU ĐỒ
-# =========================
+# Tên hiển thị rút gọn cho các chiến lược
+# Dùng để hiển thị trên biểu đồ cho gọn và dễ đọc
+DISPLAY_NAME = {
+    "Jaccard Similarity": "Jaccard",
+    "Cosine Similarity (Segment-based)": "Cosine",
+    "Brute Force Matching": "Bruteforce",
+    "Edit Distance (Levenshtein DP)": "Edit Distance",
+    "Divide and Conquer (Pruning & Weighted)": "Divide & Conquer"
+}
 
-def plot_bar(data, title, filename):
-    """Vẽ biểu đồ cột đơn giản từ dict {strategy: value}"""
-    names = list(data.keys())
-    values = list(data.values())
+# Màu pastel tương ứng cho từng chiến lược
+# Giúp biểu đồ dễ nhìn và phân biệt rõ các phương pháp
+PASTEL_COLORS = {
+    "Jaccard": "#A8D5BA",           
+    "Cosine": "#A7C7E7",            
+    "Bruteforce": "#D7BDE2",       
+    "Edit Distance": "#F9E79F",     
+    "Divide & Conquer": "#F5B7B1"   
+}
 
-    #Màu theo chiến lược
-    color_map = {
-        "Jaccard Similarity": "#4CAF50",                 
-        "Cosine Similarity (Segment-based)": "#2196F3",  
-        "Edit Distance (Levenshtein DP)": "#FF9800",     
-        "Divide and Conquer (Pruning & Weighted)": "#F44336",
-        "Brute Force Matching": "#AB71B5"  
-    }
+def plot_bar(data, title, ylabel, filename, log_scale=False):
+    """
+    Vẽ biểu đồ cột cho một chỉ số thống kê
+    data: dict {strategy_name: value}
+    title: tiêu đề biểu đồ
+    ylabel: nhãn trục Y
+    filename: tên file ảnh đầu ra
+    log_scale: có sử dụng thang log cho trục Y hay không
+    """
+    names = []
+    values = []
+    colors = []
 
-    colors = [color_map.get(name, "#9E9E9E") for name in names]  
+    # Duyệt từng chiến lược để lấy tên hiển thị, giá trị và màu sắc
+    for k, v in data.items():
+        short = DISPLAY_NAME.get(k, k)
+        names.append(short)
+        values.append(v)
+        colors.append(PASTEL_COLORS.get(short, "#CCCCCC"))
 
-    plt.figure(figsize=(8, 5))
+    # Khởi tạo biểu đồ
+    plt.figure(figsize=(7, 4))
     plt.bar(names, values, color=colors)
+
+    # Thiết lập tiêu đề và nhãn
     plt.title(title)
-    plt.ylabel(title)
-    plt.xticks(rotation=30, ha="right")
-    plt.grid(axis="y", linestyle="--", alpha=0.5)  # nhìn xịn hơn
+    plt.ylabel(ylabel)
+    plt.xticks(rotation=20)
+
+    # Nếu cần, dùng thang log cho trục Y (phù hợp khi so sánh thời gian)
+    if log_scale:
+        plt.yscale("log")
+
+    # Thêm lưới để dễ quan sát
+    plt.grid(axis="y", linestyle="--", alpha=0.4)
     plt.tight_layout()
+
+    # Lưu biểu đồ ra file
     plt.savefig(filename)
     plt.close()
 
-# =========================
-# TẠO BẢNG HTML
-# =========================
-
 def build_table(results):
-    """Tạo bảng HTML từ list kết quả chuẩn format"""
+    """
+    Tạo bảng HTML hiển thị kết quả của từng chiến lược
+    results: danh sách kết quả của một bộ kiểm thử
+    """
     html = """
     <table>
       <tr>
         <th>Chiến lược</th>
-        <th>Similarity</th>
+        <th>Độ giống</th>
         <th>Thời gian (s)</th>
       </tr>
     """
+
+    # Thêm từng dòng dữ liệu vào bảng
     for r in results:
+        strategy = r.get("strategy", "N/A")
+        sim = r.get("similarity_score", 0)
+        time = r.get("time_seconds", 0)
+
         html += f"""
         <tr>
-          <td>{r['strategy']}</td>
-          <td>{round(r['similarity_score'], 4)}</td>
-          <td>{round(r['time_seconds'], 6)}</td>
+          <td>{strategy}</td>
+          <td>{round(sim, 4)}</td>
+          <td>{round(time, 6)}</td>
         </tr>
         """
+
     html += "</table>"
     return html
 
-# =========================
-# GHI FILE HTML
-# =========================
-
 def build_report(all_cases, output_file="report.html"):
-    """Nhận list các case test và xuất ra report.html"""
+    """
+    Xây dựng báo cáo HTML tổng hợp cho tất cả các bộ kiểm thử
+    all_cases: danh sách các bộ test và kết quả tương ứng
+    """
 
-    # Lấy dữ liệu trung bình theo chiến lược
     avg_similarity = {}
     avg_time = {}
     count = {}
 
+    # Tính tổng độ giống và thời gian cho từng chiến lược
     for case in all_cases:
-        for r in case["results"]:
-            name = r["strategy"]
-            avg_similarity[name] = avg_similarity.get(name, 0) + r["similarity_score"]
-            avg_time[name] = avg_time.get(name, 0) + r["time_seconds"]
+        for r in case.get("results", []):
+            name = r.get("strategy")
+            if not name:
+                continue
+
+            avg_similarity[name] = avg_similarity.get(name, 0) + r.get("similarity_score", 0)
+            avg_time[name] = avg_time.get(name, 0) + r.get("time_seconds", 0)
             count[name] = count.get(name, 0) + 1
 
+    # Tính giá trị trung bình
     for k in avg_similarity:
         avg_similarity[k] /= count[k]
         avg_time[k] /= count[k]
 
-    # Vẽ biểu đồ
+    # Tạo thư mục lưu biểu đồ nếu chưa tồn tại
     os.makedirs("charts", exist_ok=True)
-    plot_bar(avg_similarity, "Độ giống trung bình", "charts/similarity.png")
-    plot_bar(avg_time, "Thời gian chạy trung bình", "charts/time.png")
 
-    # HTML cơ bản
+    # Vẽ biểu đồ độ giống trung bình
+    plot_bar(
+        avg_similarity,
+        title="Độ giống trung bình giữa các chiến lược",
+        ylabel="Similarity",
+        filename="charts/similarity.png"
+    )
+
+    # Vẽ biểu đồ thời gian chạy trung bình (dùng thang log)
+    plot_bar(
+        avg_time,
+        title="Thời gian chạy trung bình",
+        ylabel="Time (seconds, log scale)",
+        filename="charts/time.png",
+        log_scale=True
+    )
+
+    # Nội dung HTML của báo cáo
     html = f"""
     <html>
     <head>
-      <meta charset='utf-8'>
+      <meta charset="utf-8">
       <title>Báo cáo so sánh chiến lược</title>
       <style>
-        body {{ font-family: Arial; margin: 20px; }}
+        body {{ font-family: Arial; margin: 30px; }}
         h1 {{ color: #333; }}
-        table {{ border-collapse: collapse; width: 60%; margin-bottom: 20px; }}
+        table {{ border-collapse: collapse; width: 70%; margin-bottom: 25px; }}
         th, td {{ border: 1px solid #ccc; padding: 8px; text-align: center; }}
         th {{ background: #f2f2f2; }}
-        img {{ width: 400px; margin: 10px 0; }}
-        .case {{ margin-bottom: 30px; }}
+        img {{ width: 420px; margin: 15px 0; }}
+        .case {{ margin-bottom: 40px; }}
       </style>
     </head>
     <body>
       <h1>BÁO CÁO KẾT QUẢ SO SÁNH</h1>
-      <p>Thời gian tạo: {datetime.now()}</p>
+      <p>Thời gian tạo: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}</p>
 
       <h2>Biểu đồ tổng quan</h2>
-      <img src='charts/similarity.png'>
-      <img src='charts/time.png'>
+      <img src="charts/similarity.png">
+      <img src="charts/time.png">
 
-      <h2>Chi tiết từng bộ test</h2>
+      <h2>Chi tiết từng bộ kiểm thử</h2>
     """
 
+    # Thêm kết quả chi tiết cho từng bộ test
     for case in all_cases:
         html += f"""
-        <div class='case'>
-          <h3>{case['case']}</h3>
-          {build_table(case['results'])}
+        <div class="case">
+          <h3>{case.get("case", "")}</h3>
+          {build_table(case.get("results", []))}
         </div>
         """
 
     html += "</body></html>"
 
+    # Ghi báo cáo ra file HTML
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html)
 
     print(f"Đã tạo báo cáo: {output_file}")
 
 def generate_html_report(all_cases, output_file="report.html"):
+    """
+    Hàm wrapper để gọi xây dựng báo cáo
+    Dùng cho module main import và sử dụng
+    """
     build_report(all_cases, output_file)
