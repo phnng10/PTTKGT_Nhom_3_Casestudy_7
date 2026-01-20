@@ -49,7 +49,7 @@ def plot_bar(data, title, ylabel, filename, log_scale=False):
     # Thiết lập tiêu đề và nhãn
     plt.title(title)
     plt.ylabel(ylabel)
-    plt.xticks(rotation=20)
+    plt.xticks(rotation=0, fontsize=10)
 
     # Nếu cần, dùng thang log cho trục Y (phù hợp khi so sánh thời gian)
     if log_scale:
