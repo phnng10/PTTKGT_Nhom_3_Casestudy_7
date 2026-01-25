@@ -1,4 +1,3 @@
-"""File chính - Gọi tất cả module và xuất báo cáo"""
 import os
 import sys
 import webbrowser
@@ -13,7 +12,7 @@ from edit_distance_dp import process_edit_distance
 from divide_conquer_compare import divide_conquer_compare
 from report_builder import generate_html_report
 
-#Kiểm tra file đầu vào
+# Kiểm tra file đầu vào
 def validate_input(file1, file2):
     errors = []
     for f in [file1, file2]:
@@ -25,7 +24,7 @@ def validate_input(file1, file2):
             errors.append(f"File không phải .txt: {f}")
     return errors
 
-#So sánh 2 file văn bản với tất cả chiến lược
+# So sánh 2 file văn bản với tất cả chiến lược
 def compare_texts(file1, file2):
     errors = validate_input(file1, file2)
     if errors:
@@ -45,7 +44,7 @@ def compare_texts(file1, file2):
 
     results = []
 
-    # 1. Jaccard
+    # === Jaccard ===
     try:
         jac = compare_jaccard(words1, words2)
         results.append({
@@ -57,7 +56,7 @@ def compare_texts(file1, file2):
     except:
         pass
 
-    # 2. Cosine
+    # === Cosin ===
     try:
         seg1 = segment_by_length(words1, 50)
         seg2 = segment_by_length(words2, 50)
@@ -73,7 +72,7 @@ def compare_texts(file1, file2):
     except:
         pass
 
-    # 3. Bruteforce
+    # === Bruteforce ===
     try:
         bf = bruteforce_match(words1, words2, threshold=0.6)
         results.append({
@@ -85,7 +84,7 @@ def compare_texts(file1, file2):
     except Exception as e:
         print("Lỗi Bruteforce:", e)
 
-    # 4. Edit Distance
+    # === Edit Distance ===
     try:
         ed = process_edit_distance(words1, words2, output_file="__tmp_edit_main.json")
         results.append({
@@ -97,7 +96,7 @@ def compare_texts(file1, file2):
     except:
         pass
 
-    # 5. Divide & Conquer
+    # === Divide & Conquer ===
     try:
         if seg1 and seg2:
             dc = divide_conquer_compare(seg1, seg2)
