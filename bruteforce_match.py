@@ -94,25 +94,23 @@ if __name__ == "__main__":
 
     with open("bruteforce_result.json", "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
-        print("\n===== KẾT QUẢ SO KHỚP VĂN BẢN (BRUTE FORCE) =====")
-        print(f"Độ giống nhau: {result[' similarity_score']:.3f}")
-        print(f'Thời gian:{result['time_seconds']:.3f} giây")
-        print(f"Tổng số đoạn của văn bản 1: {result['details']['segments_text1']}")
-        print(f"Tổng số đoạn của văn bản 2: {result['details']['segments_text2']}")
-        print(f"Số đoạn được đánh giá là tương đồng: {result['details']['matched_segments']}")
 
-if result["details"]["warnings"]:
-    print("\n Một số lưu ý trong quá trình so khớp:")
-    for w in result["details"]["warnings"]:
-        print(f"  - {w}")
+    print("\n===== KẾT QUẢ SO KHỚP VĂN BẢN (BRUTE FORCE) =====")
+    print(f"Độ giống nhau: {result['similarity_score']:.3f}")
+    print(f"Thời gian: {result['time_seconds']:.3f} giây")
+    print(f"Tổng số đoạn của văn bản 1: {result['details']['segments_text1']}")
+    print(f"Tổng số đoạn của văn bản 2: {result['details']['segments_text2']}")
+    print(f"Số đoạn được đánh giá là tương đồng: {result['details']['matched_segments']}")
 
-print("\n 5 cặp đoạn có mức độ giống nhau cao nhất:")
-for match in result["details"]["top_segment_matches"]:
-    print(
-        f"  Đoạn {match['segment1_idx']} (văn bản 1) "
-        f"  Đoạn {match['segment2_idx']} (văn bản 2) "
-        f" {match['similarity']:.3f}"
-    )
+    if result["details"]["warnings"]:
+        print("\nMột số lưu ý trong quá trình so khớp:")
+        for w in result["details"]["warnings"]:
+            print(f"  - {w}")
 
-    
-        
+    print("\n5 cặp đoạn có mức độ giống nhau cao nhất:")
+    for match in result["details"]["top_segment_matches"]:
+        print(
+            f"  Đoạn {match['segment1_idx']} (văn bản 1) | "
+            f"Đoạn {match['segment2_idx']} (văn bản 2) | "
+            f"{match['similarity']:.3f}"
+        )
